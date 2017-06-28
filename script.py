@@ -28,8 +28,14 @@ def main():
     wiki_urls = get_urls_from_csv(filename)
     company_urls = []
     for wiki_url in wiki_urls:
-        html = get_html(wiki_url)
-        company_urls.append(get_company_url_from_wiki(html))
+        try:
+            html = get_html_from_url(wiki_url)
+            company_url = get_company_url_from_html(html)
+        except (urllib.error.URLError, AttributeError):
+            company_url = 'N/A'
+
+        company_urls.append(company_url)
+        print('{:<70} {}'.format(wiki_url, company_url))
 
 
 def get_urls_from_csv(filename):
@@ -59,8 +65,8 @@ def get_urls_from_csv(filename):
     return urls
 
 
-def get_html(url):
-    """Send HTTP request and return response as HTML text.
+def get_html_from_url(url):
+    """Send HTTP request to URL and return response as HTML text.
 
     Args:
         url (str): URL to website to get HTML from.
@@ -78,9 +84,43 @@ def get_html(url):
     return html
 
 
-def get_company_url_from_wiki(html):
+def get_company_url_from_html(html):
+    """Parse HTML text and return URL of the company webpage is about.
+
+    Note:
+        There is no CSS-selector to filter only website, because on some pages
+        unwanted links have the same structure (tag name, class, hierarchy)
+        as wanted ones, so it is impossible to distinguish right one.
+        That is why search is made by name of the row ('Website').
+
+    Args:
+        html (str): HTML text from webpage.
+
+    Returns:
+        str: company website URL.
+
+    Raises:
+        AttributeError: if there is no URL on the page.
+
+    """
+    def website_row(tag):
+        """Tell whether the tag is a website row. Used by BeatifulSoup."""
+        row_head = tag.find('th')
+        return (tag.name == 'tr'
+                and row_head is not None
+                and row_head.text == 'Website')
+
     soup = BeautifulSoup(html, 'html.parser')
-    tag = soup.find('td', class_='url')
+    row_tag = soup.find(website_row)
+
+    if row_tag is not None:
+        link_tag = row_tag.find('a', class_='external')
+
+        if link_tag is not None:
+            return link_tag['href']
+
+    # If row_tag or link_tag is None.
+    raise AttributeError('Cannot find URL')
 
 
 if __name__ == '__main__':
