@@ -45,6 +45,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+wikipedia_answers.csv
 
 # Translations
 *.mo
