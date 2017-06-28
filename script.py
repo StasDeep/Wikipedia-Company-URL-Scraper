@@ -43,7 +43,7 @@ def main():
             company_url = 'N/A'
 
         company_urls.append(company_url)
-        logger.info('Ready: %d/%d' % (i + 1, len(wiki_urls)))
+        logger.info('Ready: %d/%d', i + 1, len(wiki_urls))
 
     # Write blank line to place carriage to right place.
     print()
