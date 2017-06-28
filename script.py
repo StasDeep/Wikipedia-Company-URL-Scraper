@@ -16,6 +16,7 @@ Usage:
 """
 
 import csv
+import logging
 import re
 import sys
 import urllib.error
@@ -25,13 +26,15 @@ from bs4 import BeautifulSoup
 
 
 def main():
+    logger = get_logger('overwrite', carriage_return=True)
+
     infile_name = sys.argv[1]
     outfile_name = 'wikipedia_answers.csv'
 
     wiki_urls = get_urls_from_csv(infile_name)
     company_urls = []
 
-    for wiki_url in wiki_urls:
+    for i, wiki_url in enumerate(wiki_urls):
         try:
             html = get_html_from_url(wiki_url)
             company_url = get_company_url_from_html(html)
@@ -40,7 +43,10 @@ def main():
             company_url = 'N/A'
 
         company_urls.append(company_url)
-        print('{:<70} {}'.format(wiki_url, company_url))
+        logger.info('Ready: %d/%d' % (i + 1, len(wiki_urls)))
+
+    # Write blank line to place carriage to right place.
+    print()
 
     write_urls_to_csv(outfile_name, wiki_urls, company_urls)
 
@@ -63,10 +69,10 @@ def get_urls_from_csv(filename):
             try:
                 urls = [row[0] for row in csv.reader(infile)]
             except IndexError:
-                msg = 'Invalid CSV file: \'{}\''.format(filename)
+                msg = 'Invalid CSV file: \'{}\'.'.format(filename)
                 raise ValueError(msg)
     except OSError:
-        msg = 'Cannot read file: \'{}\''.format(filename)
+        msg = 'Cannot read file: \'{}\'.'.format(filename)
         raise OSError(msg)
 
     return urls
@@ -126,7 +132,7 @@ def get_company_url_from_html(html):
             return link_tag['href']
 
     # If row_tag or link_tag is None.
-    raise AttributeError('Cannot find URL')
+    raise AttributeError('Cannot find URL.')
 
 
 def beautify_url(url):
@@ -171,12 +177,39 @@ def write_urls_to_csv(filename, wiki_urls, company_urls):
             writer.writerow(['wikipedia_page', 'website'])
             writer.writerows(zip(wiki_urls, company_urls))
     except OSError:
-        msg = 'Cannot write to file: \'{}\''.format(filename)
+        msg = 'Cannot write to file: \'{}\'.'.format(filename)
         raise OSError(msg)
+
+
+def get_logger(name, carriage_return=False):
+    """Set logger and return it.
+
+    Args:
+        name (str): name of the logger.
+        carriage_return (bool): False if '\n' should be added after line.
+
+    Returns:
+        logging.Logger: logger with stream handler.
+
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    if carriage_return:
+        ch.terminator = '\r'
+
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    ch.setFormatter(formatter)
+
+    logger.addHandler(ch)
+
+    return logger
 
 
 if __name__ == '__main__':
     try:
         main()
     except (OSError, ValueError) as error:
-        print(error)
+        logging.error(str(error))
