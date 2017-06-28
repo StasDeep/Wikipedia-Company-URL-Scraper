@@ -25,9 +25,12 @@ from bs4 import BeautifulSoup
 
 
 def main():
-    filename = sys.argv[1]
-    wiki_urls = get_urls_from_csv(filename)
+    infile_name = sys.argv[1]
+    outfile_name = 'wikipedia_answers.csv'
+
+    wiki_urls = get_urls_from_csv(infile_name)
     company_urls = []
+
     for wiki_url in wiki_urls:
         try:
             html = get_html_from_url(wiki_url)
@@ -38,6 +41,8 @@ def main():
 
         company_urls.append(company_url)
         print('{:<70} {}'.format(wiki_url, company_url))
+
+    write_urls_to_csv(outfile_name, wiki_urls, company_urls)
 
 
 def get_urls_from_csv(filename):
@@ -74,7 +79,7 @@ def get_html_from_url(url):
         url (str): URL to website to get HTML from.
 
     Returns:
-        str: HTML text from webpage with passed url.
+        str: HTML text from webpage with passed URL.
 
     Raises:
         urllib.error.URLError:
@@ -103,7 +108,6 @@ def get_company_url_from_html(html):
 
     Raises:
         AttributeError: if there is no URL on the page.
-
     """
     def website_row(tag):
         """Tell whether the tag is a website row. Used by BeautifulSoup."""
@@ -145,6 +149,30 @@ def beautify_url(url):
 
     raw_url = re.search(pattern, url).group(1)
     return 'https://www.{}'.format(raw_url)
+
+
+def write_urls_to_csv(filename, wiki_urls, company_urls):
+    """Write Wikipedia URLs with matching companies URLs to CSV file.
+
+    Args:
+        filename (str): name of the file data will be written to.
+        wiki_urls (list): list of companies Wikipedia URLs.
+        company_urls (list): list of companies own websites.
+
+    Raises:
+        OSError: if data cannot be written to the file.
+    """
+    try:
+        with open(filename, 'w') as outfile:
+            writer = csv.writer(outfile,
+                                quoting=csv.QUOTE_ALL,
+                                lineterminator='\n')
+
+            writer.writerow(['wikipedia_page', 'website'])
+            writer.writerows(zip(wiki_urls, company_urls))
+    except OSError:
+        msg = 'Cannot write to file: \'{}\''.format(filename)
+        raise OSError(msg)
 
 
 if __name__ == '__main__':
