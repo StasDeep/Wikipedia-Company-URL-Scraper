@@ -17,13 +17,19 @@ Usage:
 
 import csv
 import sys
+import urllib.error
+import urllib.request
+
+from bs4 import BeautifulSoup
 
 
 def main():
     filename = sys.argv[1]
-    urls = get_urls_from_csv(filename)
-    for url in urls:
-        html = get_html(url)
+    wiki_urls = get_urls_from_csv(filename)
+    company_urls = []
+    for wiki_url in wiki_urls:
+        html = get_html(wiki_url)
+        company_urls.append(get_company_url_from_wiki(html))
 
 
 def get_urls_from_csv(filename):
@@ -36,7 +42,7 @@ def get_urls_from_csv(filename):
         list: list of all urls, written in the first column of file.
 
     Raises:
-        FileNotFoundError: if file with passed filename does not exist.
+        OSError: if file with passed filename cannot be opened.
         ValueError: if file with passed filename is not a valid CSV file.
     """
     try:
@@ -46,19 +52,39 @@ def get_urls_from_csv(filename):
             except IndexError:
                 msg = 'Invalid CSV file: \'{}\''.format(filename)
                 raise ValueError(msg)
-    except FileNotFoundError:
-        msg = 'No such file: \'{}\''.format(filename)
-        raise FileNotFoundError(msg)
+    except OSError:
+        msg = 'Cannot read file: \'{}\''.format(filename)
+        raise OSError(msg)
 
     return urls
 
 
 def get_html(url):
-    pass
+    """Send HTTP request and return response as HTML text.
+
+    Args:
+        url (str): URL to website to get HTML from.
+
+    Returns:
+        str: HTML text from webpage with passed url.
+
+    Raises:
+        urllib.error.URLError:
+            - if URL is not valid;
+            - if there is no internet connection.
+    """
+    with urllib.request.urlopen(url) as response:
+        html = response.read()
+    return html
+
+
+def get_company_url_from_wiki(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    tag = soup.find('td', class_='url')
 
 
 if __name__ == '__main__':
     try:
         main()
-    except (FileNotFoundError, ValueError) as error:
+    except (OSError, ValueError) as error:
         print(error)
