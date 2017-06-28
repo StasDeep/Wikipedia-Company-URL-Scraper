@@ -195,15 +195,15 @@ def get_logger(name, carriage_return=False):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
     if carriage_return:
-        ch.terminator = '\r'
+        handler.terminator = '\r'
 
     formatter = logging.Formatter('%(asctime)s - %(message)s')
-    ch.setFormatter(formatter)
+    handler.setFormatter(formatter)
 
-    logger.addHandler(ch)
+    logger.addHandler(handler)
 
     return logger
 
