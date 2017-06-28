@@ -16,6 +16,7 @@ Usage:
 """
 
 import csv
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -31,6 +32,7 @@ def main():
         try:
             html = get_html_from_url(wiki_url)
             company_url = get_company_url_from_html(html)
+            company_url = beautify_url(company_url)
         except (urllib.error.URLError, AttributeError):
             company_url = 'N/A'
 
@@ -104,7 +106,7 @@ def get_company_url_from_html(html):
 
     """
     def website_row(tag):
-        """Tell whether the tag is a website row. Used by BeatifulSoup."""
+        """Tell whether the tag is a website row. Used by BeautifulSoup."""
         row_head = tag.find('th')
         return (tag.name == 'tr'
                 and row_head is not None
@@ -121,6 +123,28 @@ def get_company_url_from_html(html):
 
     # If row_tag or link_tag is None.
     raise AttributeError('Cannot find URL')
+
+
+def beautify_url(url):
+    """Convert URL to unified format and return it.
+
+    Note:
+        Unified format looks this way:
+        http://www.example.com/...
+
+    Arguments:
+        url (str): URL to be beautified.
+
+    Returns:
+        str: beautified URL.
+    """
+    pattern = (r'^(?:http:|https:)?'
+               r'(?://)?'
+               r'(?:www\.)?'
+               r'(.*)$')
+
+    raw_url = re.search(pattern, url).group(1)
+    return 'https://www.{}'.format(raw_url)
 
 
 if __name__ == '__main__':
